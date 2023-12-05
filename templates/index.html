@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SQL Readability Checker</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 20px;
+        }
+        .result-pre {
+            white-space: pre-wrap;       /* Since CSS 2.1 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>SQL Readability Checker</h2>
+        <textarea id="sqlInput" rows="10" class="form-control"></textarea><br>
+        <button onclick="checkReadability()" class="btn btn-primary">Check Readability</button>
+        <button onclick="clearFields()" class="btn btn-secondary">Clear</button>
+        <div id="result" class="mt-3"></div>
+    </div>
+
+    <script>
+        function checkReadability() {
+            var sqlQuery = document.getElementById("sqlInput").value;
+            fetch('/readability', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({sql_query: sqlQuery}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayResult(data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+    
+        function displayResult(data) {
+            var resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = ''; // Clear previous results
+    
+            // Create a user-friendly format for the report
+            for (var key in data) {
+                var p = document.createElement("p");
+    
+                if (key === 'Well-Indented Query' && data[key]) {
+                    // Display Well-Indented Query with Copy Button
+                    displayWellIndentedQuery(data[key], p);
+                } else if (key === 'Error Handling Suggestion') {
+                    // Display Error Handling Suggestions
+                    displayErrorHandlingSuggestions(data[key], p);
+                } else {
+                    // Display other fields in a user-friendly way
+                    p.innerHTML = "<strong>" + key + ":</strong> " + (data[key] ? data[key] : "Not applicable.");
+                }
+                resultDiv.appendChild(p);
+            }
+        }
+    
+        function displayWellIndentedQuery(query, parentElement) {
+            var pre = document.createElement("pre");
+            pre.classList.add("result-pre");
+            pre.textContent = query;
+            parentElement.appendChild(pre);
+    
+            var copyButton = document.createElement("button");
+            copyButton.classList.add("btn", "btn-info", "btn-sm");
+            copyButton.textContent = "Copy Well-Indented Query";
+            copyButton.onclick = function() {
+                navigator.clipboard.writeText(query);
+            };
+            parentElement.appendChild(copyButton);
+        }
+    
+        function displayErrorHandlingSuggestions(suggestions, parentElement) {
+            if (Array.isArray(suggestions) && suggestions.length > 0) {
+                parentElement.innerHTML = "<strong>Error Handling Suggestion:</strong>";
+                var ul = document.createElement("ul");
+                suggestions.forEach(function(suggestion) {
+                    var li = document.createElement("li");
+                    li.textContent = suggestion;
+                    ul.appendChild(li);
+                });
+                parentElement.appendChild(ul);
+            } else {
+                parentElement.innerHTML = "<strong>Error Handling Suggestion:</strong> No specific error handling suggestions for this query.";
+            }
+        }
+    
+        function clearFields() {
+            document.getElementById("sqlInput").value = '';
+            document.getElementById("result").innerHTML = '';
+        }
+    </script>
+    
+</body>
+</html>
